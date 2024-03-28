@@ -1,0 +1,8 @@
+services:
+  api:
+    build: .
+    container_name: blossom-api
+    volumes:
+      - ${PWD}/.data:/data
+    ports:
+      - 127.0.0.1:3010:3000

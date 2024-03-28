@@ -11,7 +11,8 @@
     "start": "node build/index.js",
     "build": "tsc",
     "dev": "DEBUG=* nodemon -i '**/data/**' -i '**/database.json' -i '**/database.old.json' -i '**/src/**' build/index.js",
-    "format": "prettier -w ."
+    "format": "prettier -w .",
+    "docker": "docker compose -f ./docker-compose.yml up -d --build --remove-orphans $@"
   },
   "bin": "build/index.js",
   "files": [
@@ -47,12 +48,13 @@
     "@types/follow-redirects": "^1.14.4",
     "@types/http-errors": "^2.0.4",
     "@types/koa": "^2.14.0",
-    "@types/koa-static": "^4.0.4",
     "@types/koa__cors": "^5.0.0",
     "@types/koa__router": "^12.0.4",
+    "@types/koa-static": "^4.0.4",
     "@types/node": "^20.11.19",
     "nodemon": "^3.0.3",
     "prettier": "^3.2.5",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "yarn": "^1.22.22"
   }
 }
