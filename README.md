@@ -116,9 +116,14 @@ Create `data` folder (for sqlite):
 mkdir data
 ```
 
-Create `config` file based on config example, no need to change anything:
+Create `config` file based on config example:
 ```sh
 cp config.example.yml config.yml
+```
+
+Edit the following line in the `config.yml`:
+```sh
+publicDomain: http://cdn.example.com # <-- set your domain
 ```
 
 Install dependencies:
