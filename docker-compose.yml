@@ -6,3 +6,4 @@ services:
       - ${PWD}/.data:/data
     ports:
       - 127.0.0.1:3010:3000
+    restart: always
