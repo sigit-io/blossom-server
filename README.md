@@ -2,6 +2,10 @@
 
 Blobs stored simply on mediaservers
 
+## Notice
+
+`dockerfile` and `docker-compose.yml` are not up to date with the main `blossom` repo. Should be merged manually.
+
 # Get started
 
 ## Prerequisites
