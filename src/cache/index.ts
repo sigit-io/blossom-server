@@ -1,5 +1,3 @@
-import debug from "debug";
-
 import { BlobSearch, CachePointer } from "../types.js";
 import storage from "../storage/index.js";
 import db, { blobDB } from "../db/db.js";
@@ -9,8 +7,9 @@ import dayjs from "dayjs";
 import { BlobMetadata } from "blossom-server-sdk/metadata";
 import { forgetBlobAccessed } from "../db/methods.js";
 import { S3Storage } from "blossom-server-sdk/storage";
+import logger from "../logger.js";
 
-const log = debug("cdn:cache");
+const log = logger.extend("cache");
 
 export async function search(search: BlobSearch): Promise<CachePointer | undefined> {
   if (blobDB.hasBlob(search.hash) && (await storage.hasBlob(search.hash))) {
@@ -79,10 +78,10 @@ export async function prune() {
     for (const blob of blobs) {
       if (checked.has(blob.sha256)) continue;
 
-      if ((blob.accessed || blob.created) < expiration) {
+      if ((blob.accessed || blob.uploaded) < expiration) {
         log("Removing", blob.sha256, blob.type, "because", rule);
-        blobDB.removeBlob(blob.sha256);
-        if (await storage.hasBlob(blob.sha256)) storage.removeBlob(blob.sha256);
+        await blobDB.removeBlob(blob.sha256);
+        if (await storage.hasBlob(blob.sha256)) await storage.removeBlob(blob.sha256);
         forgetBlobAccessed(blob.sha256);
       }
 

@@ -1,7 +1,16 @@
-# Used when listing blobs
-publicDomain: http://cdn.example.com
+# Override the domain thats is used in the blobs "url" field
+# By default it uses the domain the incoming HTTP request was made on
+publicDomain: ""
 
 databasePath: data/sqlite.db
+
+dashboard:
+  # enable or disable the admin dashboard
+  enabled: true
+  # admin username
+  username: admin
+  # if password is left blank it will be generated each time the app starts
+  # password: ""
 
 discovery:
   # find files by querying nostr relays
@@ -14,6 +23,7 @@ discovery:
       - wss://nos.lol
       - wss://nostr-pub.wellorder.net
   # find files by asking upstream CDNs
+  # NOTE: do not set this to your own server, it will create an infinite loop
   upstream:
     enabled: true
     domains:
@@ -22,13 +32,24 @@ discovery:
 storage:
   # local or s3
   backend: local
+
+  # Imminently removes a blob when there are no owners
+  removeWhenNoOwners: false
+
+  # local storage
   local:
-    dir: ./data
+    dir: ./data/blobs
+
+  # see minio docs for options:
+  # https://min.io/docs/minio/linux/developers/javascript/API.html#new-minio-client-endpoint-port-usessl-accesskey-secretkey-region-transport-sessiontoken-partsize
   # s3:
   #   endpoint: https://s3.endpoint.com
+  #   port: 443
   #   bucket: blossom
   #   accessKey: xxxxxxxx
   #   secretKey: xxxxxxxxx
+  #   useSSL: true
+  #   region: us-east-1
   #   If this is set the server will redirect clients when loading blobs
   #   publicURL: https://s3.region.example.com/
 

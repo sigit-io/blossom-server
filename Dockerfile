@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
-FROM node:20.11 as builder
-
+FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Install dependencies
+ENV NODE_ENV=development
 COPY ./package*.json .
 COPY ./yarn.lock .
 ENV NODE_ENV=development
@@ -11,7 +11,8 @@ RUN npx yarn install
 COPY . .
 RUN npx yarn build
 
-FROM node:20.11
+FROM node:20-alpine
+WORKDIR /app
 
 ENV NODE_ENV=production
 COPY ./package*.json .
@@ -28,6 +29,6 @@ RUN mkdir data
 
 EXPOSE 3000
 
-ENV DEBUG="cdn,cdn:*"
+ENV DEBUG="blossom-server,blossom-server:*"
 
 ENTRYPOINT [ "node", "build/index.js" ]
