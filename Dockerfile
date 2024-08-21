@@ -6,13 +6,10 @@ WORKDIR /app
 ENV NODE_ENV=development
 COPY ./package*.json .
 COPY ./yarn.lock .
-RUN yarn install
-COPY ./admin/package*.json ./admin/
-COPY ./admin/yarn.lock ./admin/
-RUN cd admin && yarn install
+ENV NODE_ENV=development
+RUN npx yarn install
 COPY . .
-RUN yarn build
-RUN cd admin && yarn build
+RUN npx yarn build
 
 FROM node:20-alpine
 WORKDIR /app
@@ -20,15 +17,18 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY ./package*.json .
 COPY ./yarn.lock .
-RUN yarn install
+RUN npx yarn install
 
+# Copy built source from builder
 COPY --from=builder ./app/build ./build
-COPY --from=builder ./app/admin/dist ./admin/dist
-COPY ./public ./public
+# Copy config from builder
+COPY --from=builder ./app/config.yml .
+# Copy public (index.html) from builder
+COPY --from=builder ./app/public ./public
+RUN mkdir data
 
-VOLUME [ "/app/data" ]
 EXPOSE 3000
 
 ENV DEBUG="blossom-server,blossom-server:*"
 
-ENTRYPOINT [ "node", "." ]
+ENTRYPOINT [ "node", "build/index.js" ]

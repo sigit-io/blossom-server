@@ -1,21 +1,9 @@
-version: "3.7"
-
-volumes:
-  data: {}
-
 services:
-  blossom:
-    image: ghcr.io/hzrd149/blossom-server:master
+  api:
     build: .
-    ports:
-      - 3000:3000
-    # enable debug logging
-    # environment:
-    #   DEBUG: "*"
+    container_name: blossom-api
     volumes:
-      # mount data volume
-      - data:/app/data
-      # mount config file
-      - ./config.yml:/app/config.yml
-      # mount custom www dir
-      - ./public:/app/public
+      - ${PWD}/.data:/data
+    ports:
+      - 127.0.0.1:3010:3000
+    restart: always

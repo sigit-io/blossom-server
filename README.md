@@ -1,70 +1,222 @@
 # 🌸 Blossom-server
 
-blossom-server is a Typescript implementation of a [Blossom Server](https://github.com/hzrd149/blossom/blob/master/Server.md)
+Blobs stored simply on mediaservers
 
-## Running with npx
+## Notice
 
-This app is also packaged as an npm module which you can easily run
+`dockerfile` and `docker-compose.yml` are not up to date with the main `blossom` repo. Should be merged manually.
 
+# Get started
+
+## Prerequisites
+
+- [NodeJS](https://nodejs.org/en) - Will run the project
+- [Docker](https://www.docker.com/) - Containerize the app (virtualization)
+- [NGINX](https://www.nginx.com/) - Domain will point to a machine IP and NGINX routes request to a server port
+- [Certbot](https://certbot.eff.org) - Enables SSL by creating certificates and updating NGINX config
+
+### Install NodeJS
+
+We will install it by using NVM (Node Version Manager):
 ```sh
-# copy the example config
-wget https://raw.githubusercontent.com/hzrd149/blossom-server/master/config.example.yml -O config.yml
-# run using npx
-npx blossom-server-ts
+sudo apt update
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash
 ```
 
-Or you can install the module using npm or yarn
+Reload bash:
 
 ```sh
-# npm
-npm install
-./node_modules/.bin/blossom-server-ts
-
-# yarn
-yarn add blossom-server-ts
-yarn run blossom-server-ts
+source ~/.bashrc 
 ```
 
-## Running with docker
+Install Node LTS version
+```sh
+nvm install --lts
+```
 
-An example config file can be found [here](./config.example.yml)
+### Install Docker
+
+Cleanup packages:
 
 ```sh
-# create data volume
-docker volume create blossom_data
-# run container
-docker run -v blossom_data:/app/data -v $(pwd)/config.yml:/app/config.yml -p 3000:3000 ghcr.io/hzrd149/blossom-server:master
+for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt-get remove $pkg; done
 ```
 
-You can also run it using docker compose with the [`docker-compose.yml`](./docker-compose.yml) file
+Add Docker's official GPG key:
 
-## Running from source
+```sh
+sudo apt-get update
+sudo apt-get install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+```
 
-This project uses [yarn](https://classic.yarnpkg.com/lang/en/docs/install) to manage dependencies. It needs to be installed first in order to build the app
+Add the repository to Apt sources:
 
-Next clone the repo, install the dependencies, and build
+```sh
+echo   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+     $(. /etc/os-release && echo "$VERSION_CODENAME") stable" |   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+```
+
+Install Docker:
+
+```sh
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```
+
+### Install NGINX
+
+```sh
+sudo apt install nginx
+```
+
+### Install Certbot
+```sh
+sudo apt install certbot python3-certbot-nginx -y
+```
+
+## Prepare
+
+### Important
+
+If you are using a fresh machine, I suggest you create a non-root user to run the server (docker). We will create a user called `blossom`:
+
+```sh
+adduser blossom
+```
+
+Add a new user to the `docker` group, so it can be executed without `sudo`:
+```sh
+adduser blossom docker
+```
+
+Add a new user to the `sudo` group, so you can edit system settings when needed:
+```sh
+adduser blossom sudo
+```
+
+Switch to new user:
+```sh
+sudo su - blossom
+```
+
+### Prepare Repo
+
+Clone the repo:
 
 ```sh
 git clone https://github.com/hzrd149/blossom-server.git
-cd blossom-server
-yarn install
-cd admin && yarn install && cd ../
-yarn build
 ```
 
-Next copy the config and modify it
+Go to the folder:
+```sh
+cd blossom-server
+```
 
+Create `data` folder (for sqlite):
+```sh
+mkdir data
+```
+
+Create `config` file based on config example:
 ```sh
 cp config.example.yml config.yml
-nano config.yml
 ```
 
-And finally start the app
+Edit the following line in the `config.yml`:
+```sh
+publicDomain: http://cdn.example.com # <-- set your domain
+```
+
+Install dependencies:
+```sh
+npm install
+```
+
+## Run on a production machine
+
+### Docker
+
+Build the Docker container:
+```sh
+npm run docker
+```
+
+Confirm it's running:
 
 ```sh
-yarn start
-# or
-node .
+docker ps
 ```
 
-Once the server is running you can open `http://localhost:3000` to access the server
+The result should show something like this:
+
+```sh
+CONTAINER ID   IMAGE                COMMAND                 CREATED       STATUS       PORTS                      NAMES
+4dab0563cab5   blossom-server-api   "node build/index.js"   1 minute ago   Up 1 minute ago   127.0.0.1:3010->3000/tcp   blossom-api
+```
+
+### NGINX
+
+On our machine, `blossom-server` is now running on port `3010`
+
+We need to configure NGINX to point a domain to that port.
+
+In the following code, replace every instance of `$BLOSSOM_DOMAIN` with a domain you want:
+
+```sh
+sudo bash -c "cat >> /etc/nginx/sites-available/default" <<'EOF'
+
+# Forward to Blossom Server
+server {
+  # Blossom domain
+  server_name $BLOSSOM_DOMAIN;
+
+  location / {
+    proxy_pass http://127.0.0.1:3010;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host $host;
+    proxy_cache_bypass $http_upgrade;
+
+    client_max_body_size 100M;
+  }
+}
+EOF
+```
+
+To enable SSL, certbot needs to be run:
+
+```sh
+sudo certbot --nginx --agree-tos -n -d $BLOSSOM_DOMAIN -m certbot@$BLOSSOM_DOMAIN
+```
+
+Restart the Nginx service:
+
+```sh
+sudo service nginx restart
+```
+
+### Done
+
+Go ahead and visit the domain you've chosen. App should be up and running.
+
+## Development server
+
+Run dev server:
+```sh
+npm run dev
+```
+
+## Production build (non Docker)
+
+Build the app:
+```sh
+npm run build
+```
+
+Run the app:
+```sh
+npm start
+```
